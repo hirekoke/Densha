@@ -4,7 +4,7 @@ using System.Text;
 using System.Drawing;
 using System.Windows.Forms;
 
-namespace Densha
+namespace Densha.view
 {
     partial class ImageListItem
     {
@@ -148,7 +148,14 @@ namespace Densha
                 {
                     if (_removeButtonBounds.Contains(e.Location))
                     {
-                        Program.MainForm.RemoveTag(this, _tagBox.ListItem, Tag);
+                        if (_tagBox.ListItem.Selected)
+                        {
+                            Program.MainForm.RemoveTags(this, Tag);
+                        }
+                        else
+                        {
+                            Program.MainForm.RemoveTag(this, _tagBox.ListItem, Tag);
+                        }
                     }
                 }
             }

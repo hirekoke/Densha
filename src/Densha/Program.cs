@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Windows.Forms;
 
+using Densha.view;
+
 namespace Densha
 {
     static class Program
@@ -28,5 +30,6 @@ namespace Densha
 
         private static MainForm _mainForm = null;
         public static MainForm MainForm { get { return _mainForm; } }
+        public static Project Project { get { return _mainForm == null ? null : _mainForm.Project; } }
     }
 }

@@ -1,12 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Text;
 using System.Windows.Forms;
 
-namespace Densha
+using Densha;
+
+namespace Densha.view
 {
     partial class MainForm : Form
     {
@@ -14,18 +12,13 @@ namespace Densha
         {
             InitializeComponent();
 
-            _tagTypeForm = new TagTypeForm();
-            _tagTypeForm.Owner = this;
-            _tagForm = new TagForm();
-            _tagForm.Owner = this;
-
-
             menuNewProjectItem.Click += new EventHandler(menuNewProjectItem_Click);
             menuOpenProjectItem.Click += new EventHandler(menuOpenProjectItem_Click);
             menuOverwriteItem.Click += new EventHandler(menuOverwriteItem_Click);
             menuSaveasItem.Click += new EventHandler(menuSaveasItem_Click);
 
             menuExportCommandItem.Click += new EventHandler(menuExportCommandItem_Click);
+            menuConfigItem.Click += new EventHandler(menuConfigItem_Click);
 
             menuShowTagTypeItem.Click += new EventHandler(menuShowTagTypeItem_Click);
             menuShowTagItem.Click += new EventHandler(menuShowTagItem_Click);
@@ -33,26 +26,60 @@ namespace Densha
             tagTypeFormViewButton.Click += new EventHandler(tagTypeFormViewButton_Click);
             tagFormViewButton.Click += new EventHandler(tagFormViewButton_Click);
             showUnusedButton.CheckedChanged += new EventHandler(showUnusedButton_CheckedChanged);
+
+            toolStripButton1.Click += new EventHandler(toolStripButton1_Click);
         }
 
+        void toolStripButton1_Click(object sender, EventArgs e)
+        {
+            if (_project == null) return;
+            ImageListItem i = null;
+            foreach (ImageListItem item in imageList.SelectedItems)
+            {
+                i = item; break;
+            }
+            if (i != null)
+            {
+                imageList.SelectTimeCluster(i);
+                imageList.Invalidate();
+            }
+            //timeline.TimeLineForm frm = new timeline.TimeLineForm(imageList.Items);
+            //frm.ShowDialog();
+        }
 
         private TagTypeForm _tagTypeForm = null;
         private TagForm _tagForm = null;
+
         private Project _project = null;
         public Project Project
         {
             get { return _project; }
             set
             {
-                if (_project != value)
-                {
-                    _project = value;
-                    SetProject();
-                }
+                _project = value;
+                setProject();
+            }
+        }
+        private bool _projectChanged = false;
+
+        void _project_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            _projectChanged = true;
+            this.Text = createFormTitle();
+
+            if (Project != null && e.PropertyName == "UsedCount")
+            {
+                usingImageStatusUsing.Text = Project.UsedCount.ToString();
             }
         }
 
         public ImageList ImageList { get { return imageList; } }
+
+        protected override void OnClosing(CancelEventArgs e)
+        {
+            base.OnClosing(e);
+            e.Cancel = ConfirmAbandonProject();
+        }
 
         protected override void OnMouseWheel(MouseEventArgs e)
         {
@@ -69,14 +96,59 @@ namespace Densha
             }
         }
 
+        /// <summary>
+        /// プロジェクトを破棄するかどうかのチェック
+        /// </summary>
+        /// <returns>次の操作をキャンセルするかどうか</returns>
+        public bool ConfirmAbandonProject()
+        {
+            bool cancel = false;
+            if (Project != null && _projectChanged)
+            {
+                DialogResult result =
+                    MessageBox.Show(Properties.Resources.Message_ConfirmSaveProject,
+                    Properties.Resources.Title_MyName,
+                    MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+                switch (result)
+                {
+                    case DialogResult.Yes:
+                        SaveProject(true);
+                        break;
+                    case DialogResult.No:
+                        break;
+                    case DialogResult.Cancel:
+                        cancel = true;
+                        break;
+                }
+            }
+            return cancel;
+        }
+
+        private string createFormTitle()
+        {
+            if (Project == null) return Properties.Resources.Title_MyName;
+
+            if (Project.ProjectFilePath == null)
+            {
+                return Properties.Resources.Title_NewProject + " - " + Properties.Resources.Title_MyName;
+            }
+            else
+            {
+                return (_projectChanged ? Properties.Resources.Title_ProjectChangedMark : "") +
+                    Project.ProjectFilePath + " - " + Properties.Resources.Title_MyName;
+            }
+        }
+
         #region メニュー・ツールバー イベントハンドラ
         private void menuNewProjectItem_Click(object sender, EventArgs e)
         {
-            CreateNewProject();
+            if(!ConfirmAbandonProject())
+                CreateNewProject();
         }
         private void menuOpenProjectItem_Click(object sender, EventArgs e)
         {
-            LoadProject();
+            if(!ConfirmAbandonProject())
+                LoadProject();
         }
         private void menuSaveasItem_Click(object sender, EventArgs e)
         {
@@ -90,6 +162,11 @@ namespace Densha
         private void menuExportCommandItem_Click(object sender, EventArgs e)
         {
             ExportCommand();
+        }
+
+        private void menuConfigItem_Click(object sender, EventArgs e)
+        {
+            ShowConfig();
         }
 
         void menuShowTagTypeItem_Click(object sender, EventArgs e)
@@ -133,10 +210,12 @@ namespace Densha
             imageList.ScrollToImage(image);
         }
 
-
         public void SetUse(object sender, DenshaImage image, bool use)
         {
-            image.IsUsed = use;
+            if (image.IsUsed != use)
+            {
+                image.IsUsed = use;
+            }
 
             imageList.Invalidate();
 
@@ -166,12 +245,38 @@ namespace Densha
                 AddTag(sender, item, tag);
             }
         }
+        public void AddTags(object sender, Tag tag)
+        {
+            if (Project != null)
+            {
+                foreach (ImageListItem item in imageList.SelectedItems)
+                {
+                    if (imageList.ShowUnusedItems || item.DenshaImage.IsUsed)
+                    {
+                        AddTag(sender, item, tag);
+                    }
+                }
+            }
+        }
         public void RemoveTag(object sender, ImageListItem item, Tag tag)
         {
             if (item.DenshaImage.RemoveTag(tag))
             {
                 item.UpdateTagLayout();
                 imageList.CloseTextBox();
+            }
+        }
+        public void RemoveTags(object sender, Tag tag)
+        {
+            if (Project != null)
+            {
+                foreach (ImageListItem item in imageList.SelectedItems)
+                {
+                    if (imageList.ShowUnusedItems || item.DenshaImage.IsUsed)
+                    {
+                        RemoveTag(sender, item, tag);
+                    }
+                }
             }
         }
 
@@ -186,7 +291,6 @@ namespace Densha
         public void UpdateTag(object sender, Tag tag)
         {
             // tag sort
-
             if (sender != imageList)
             {
                 imageList.UpdateTag(tag);
@@ -199,11 +303,28 @@ namespace Densha
                 imageList.UpdateTagType(type);
             }
         }
+
+        public void ShowConfig()
+        {
+            using (ConfigForm cf = new ConfigForm())
+            {
+                if (cf.ShowDialog() == DialogResult.OK)
+                {
+                    imageList.Invalidate();
+                    imageTabs.Invalidate();
+                }
+            }
+        }
         #endregion
 
         #region タグ設定フォーム
         public void ShowTagTypeForm(object sender, bool visible)
         {
+            if (_tagTypeForm == null || _tagTypeForm.IsDisposed || !_tagTypeForm.IsHandleCreated)
+            {
+                _tagTypeForm = new TagTypeForm();
+                _tagTypeForm.Owner = this;
+            }
             if (_tagTypeForm != null && !_tagTypeForm.Disposing && sender != _tagTypeForm)
             {
                 if (Project != null)
@@ -212,7 +333,7 @@ namespace Densha
                 }
                 else
                 {
-                    _tagTypeForm.TagTypes = null;
+                    //_tagTypeForm.TagTypes = null;
                 }
                 _tagTypeForm.Visible = visible;
             }
@@ -225,6 +346,11 @@ namespace Densha
         public void ShowTagForm(object sender, bool visible)
         {
             bool open = false;
+            if (_tagForm == null || _tagForm.IsDisposed || !_tagForm.IsHandleCreated)
+            {
+                _tagForm = new TagForm();
+                _tagForm.Owner = this;
+            }
             if (_tagForm != null && !_tagForm.Disposing && sender != _tagForm)
             {
                 if (Project != null)
@@ -252,73 +378,26 @@ namespace Densha
 
         #region 読み込み・保存
 
-        private void suspendGUI()
+        private ProgressForm _progressForm = null;
+        private void startLoadProject()
         {
-            statusProgressBar.Maximum = Config.Instance.StatusProgressBarWidth;
-            statusProgressBar.Width = Config.Instance.StatusProgressBarWidth;
-
             ShowTagTypeForm(this, false);
             ShowTagForm(this, false);
-            this.MainMenuStrip.Enabled = false;
-            this.toolStrip1.Enabled = false;
-            this.imageList.Enabled = false;
-            this.imageTabs.Enabled = false;
 
-            statusProgressLabel.Text = "";
-            statusProgressBar.Value = 0;
-            statusProgressLabel.Visible = true;
-            statusProgressBar.Visible = true;
+            this.Enabled = false;
+            _progressForm = new ProgressForm();
+            _progressForm.StartPosition = FormStartPosition.CenterParent;
+            _progressForm.Show(this);
         }
-        private void resumeGUI()
+        private void endLoadProject()
         {
-            this.MainMenuStrip.Enabled = true;
-            this.toolStrip1.Enabled = true;
-            this.imageList.Enabled = true;
-            this.imageTabs.Enabled = true;
-
-            statusProgressLabel.Text = "";
-            statusProgressBar.Value = 0;
-            statusProgressLabel.Visible = false;
-            statusProgressBar.Visible = false;
+            _progressForm.Close();
+            _progressForm.Dispose();
+            _progressForm = null;
+            this.Enabled = true;
+            this.Activate();
         }
 
-
-        #region SetProject
-        public void SetProject()
-        {
-            suspendGUI();
-            BackgroundWorker setProjectWorker = new BackgroundWorker();
-            setProjectWorker.DoWork += new DoWorkEventHandler(setProjectWorker_DoWork);
-            setProjectWorker.ProgressChanged += new ProgressChangedEventHandler(setProjectWorker_ProgressChanged);
-            setProjectWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(setProjectWorker_RunWorkerCompleted);
-            setProjectWorker.RunWorkerAsync();
-        }
-
-        void setProjectWorker_DoWork(object sender, DoWorkEventArgs e)
-        {
-            lock (imageList.Items)
-            {
-                imageList.Items.Clear();
-                foreach (DenshaImage img in Project.Images)
-                {
-                    ImageListItem item = new ImageListItem(img);
-                    imageList.Items.Add(item);
-                }
-            }
-        }
-        void setProjectWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)
-        {
-            statusProgressLabel.Text = e.UserState.ToString();
-            statusProgressBar.Value = e.ProgressPercentage;
-        }
-        void setProjectWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
-        {
-            resumeGUI();
-            imageList.Invalidate();
-        }
-        #endregion
-
-        #region CreateNewProject
         public void CreateNewProject()
         {
             ShowTagTypeForm(this, false);
@@ -329,42 +408,25 @@ namespace Densha
             {
                 if (frm.ShowDialog() == DialogResult.OK)
                 {
-                    suspendGUI();
+                    startLoadProject();
 
                     BackgroundWorker createProjectWorker = new BackgroundWorker();
                     createProjectWorker.WorkerReportsProgress = true;
-                    createProjectWorker.DoWork += new DoWorkEventHandler(createProjectWorker_DoWork);
-                    createProjectWorker.ProgressChanged += new ProgressChangedEventHandler(createProjectWorker_ProgressChanged);
-                    createProjectWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(createProjectWorker_RunWorkerCompleted);
-                    createProjectWorker.RunWorkerAsync(frm);
+                    createProjectWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(onProjectLoadComplete);
+
+                    createProjectWorker.DoWork += delegate(object sender, DoWorkEventArgs e)
+                    {
+                        BackgroundWorker worker = (BackgroundWorker)sender;
+                        string[] args = e.Argument as string[];
+                        e.Result = Project.CreateProject(args[0], args[1], args[2], worker);
+                    };
+
+                    _progressForm.Worker = createProjectWorker;
+                    createProjectWorker.RunWorkerAsync(new string[] { frm.OriginalDir, frm.ThumbnailDir, frm.ThumbnailNamePattern });
                 }
             }
         }
 
-        void createProjectWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
-        {
-            resumeGUI();
-            // set project
-            Project project = e.Result as Project;
-            if (project != null) Project = project;
-        }
-
-        void createProjectWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)
-        {
-            statusProgressLabel.Text = e.UserState.ToString();
-            statusProgressBar.Value = e.ProgressPercentage;
-        }
-
-        void createProjectWorker_DoWork(object sender, DoWorkEventArgs e)
-        {
-            CreateProjectForm frm = e.Argument as CreateProjectForm;
-            BackgroundWorker worker = (BackgroundWorker)sender;
-            e.Result = Project.CreateProject(frm.OriginalDir, frm.ThumbnailDir,
-                frm.ThumbnailNamePattern, worker);
-        }
-        #endregion
-
-        #region LoadProject
         public void LoadProject()
         {
             ShowTagTypeForm(this, false);
@@ -377,43 +439,95 @@ namespace Densha
                 dlg.AutoUpgradeEnabled = true;
                 dlg.DereferenceLinks = true;
                 dlg.Filter = Properties.Resources.ProjectFileFilter;
+                dlg.Title = Properties.Resources.Title_OpenProjectFile;
                 dlg.InitialDirectory = AppDomain.CurrentDomain.BaseDirectory;
-                dlg.Title = "プロジェクトを開く";
                 if (dlg.ShowDialog() == DialogResult.OK)
                 {
-                    suspendGUI();
+                    startLoadProject();
 
-                    BackgroundWorker loadWorker = new BackgroundWorker();
-                    loadWorker.WorkerReportsProgress = true;
-                    loadWorker.DoWork += new DoWorkEventHandler(loadWorker_DoWork);
-                    loadWorker.ProgressChanged += new ProgressChangedEventHandler(loadWorker_ProgressChanged);
-                    loadWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(loadWorker_RunWorkerCompleted);
-                    loadWorker.RunWorkerAsync(dlg.FileName);
+                    BackgroundWorker loadProjectWorker = new BackgroundWorker();
+                    loadProjectWorker.WorkerReportsProgress = true;
+                    loadProjectWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(onProjectLoadComplete);
+
+                    loadProjectWorker.DoWork += delegate(object sender, DoWorkEventArgs e)
+                    {
+                        try
+                        {
+                            BackgroundWorker worker = (BackgroundWorker)sender;
+                            e.Result = Project.Load(e.Argument as string, worker);
+                        }
+                        catch (errors.ProjectParseError ex)
+                        {
+                            errors.ErrorHandler.HandleProjectParseError(ex);
+                            e.Result = null;
+                        }
+                    };
+
+                    _progressForm.Worker = loadProjectWorker;
+                    loadProjectWorker.RunWorkerAsync(dlg.FileName);
                 }
             }
         }
-        #region loadWorker
-        void loadWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+
+        void onProjectLoadComplete(object sender, RunWorkerCompletedEventArgs e)
         {
-            resumeGUI();
             // set project
             Project project = e.Result as Project;
-            if (project != null) Project = project;
+            if (project != null)
+            {
+                Project = project;
+            }
+            else
+            {
+                Project = null;
+            }
         }
 
-        void loadWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        #region setProject
+        private void setProject()
         {
-            statusProgressLabel.Text = e.UserState.ToString();
-            statusProgressBar.Value = e.ProgressPercentage;
+            BackgroundWorker setProjectWorker = new BackgroundWorker();
+            setProjectWorker.WorkerReportsProgress = true;
+            setProjectWorker.DoWork += new DoWorkEventHandler(setProjectWorker_DoWork);
+            setProjectWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(setProjectWorker_RunWorkerCompleted);
+            _progressForm.Worker = setProjectWorker;
+            setProjectWorker.RunWorkerAsync();
         }
 
-        void loadWorker_DoWork(object sender, DoWorkEventArgs e)
+        private void setProjectWorker_DoWork(object sender, DoWorkEventArgs e)
         {
-            // load project
-            BackgroundWorker worker = (BackgroundWorker)sender;
-            e.Result = Project.Load(e.Argument as string, worker);
+            BackgroundWorker bgWorker = (BackgroundWorker)sender;
+            bgWorker.ReportProgress(0, "set project");
+
+            lock (imageList.Items)
+            {
+                imageList.Items.Clear();
+                if (Project != null)
+                {
+                    int imgCount = Project.Images.Count;
+                    int i = 0;
+                    foreach (DenshaImage img in Project.Images)
+                    {
+                        ImageListItem item = new ImageListItem(img);
+                        imageList.Items.Add(item);
+                        bgWorker.ReportProgress((int)(++i * 100 / (double)imgCount), "set image");
+                    }
+                }
+            }
+            if (Project != null)
+            {
+                Project.PropertyChanged += new PropertyChangedEventHandler(_project_PropertyChanged);
+            }
         }
-        #endregion
+        void setProjectWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            endLoadProject();
+            this.Text = createFormTitle();
+            usingImageStatusAll.Text = Project.Images.Count.ToString();
+            usingImageStatusUsing.Text = Project.UsedCount.ToString();
+            _projectChanged = false;
+            imageList.Invalidate();
+        }
         #endregion
 
         public void SaveProject(bool saveas)
@@ -428,7 +542,8 @@ namespace Densha
                         dlg.AutoUpgradeEnabled = true;
                         dlg.DefaultExt = ".xml";
                         dlg.Filter = Properties.Resources.ProjectFileFilter;
-                        dlg.Title = "プロジェクトを保存";
+                        dlg.Title = Properties.Resources.Title_SaveProjectFile;
+                        
                         if (string.IsNullOrEmpty(fn))
                         {
                             dlg.InitialDirectory = AppDomain.CurrentDomain.BaseDirectory;
@@ -453,6 +568,9 @@ namespace Densha
                 {
                     Project.Save(fn);
                     Project.ProjectFilePath = fn;
+
+                    _projectChanged = false;
+                    this.Text = createFormTitle();
                 }
             }
             else
@@ -463,15 +581,16 @@ namespace Densha
 
         public void ExportCommand()
         {
-            if (_project != null)
+            if (Project != null)
             {
-                using (CommandForm frm = new CommandForm(_project))
+                using (CommandForm frm = new CommandForm(Project))
                 {
                     frm.ShowDialog();
                 }
             }
         }
         #endregion
+
 
     }
 }

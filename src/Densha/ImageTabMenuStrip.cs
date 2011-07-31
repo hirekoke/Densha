@@ -6,7 +6,7 @@ using System.Data;
 using System.Text;
 using System.Windows.Forms;
 
-namespace Densha
+namespace Densha.view
 {
     partial class ImageTabMenuStrip : ContextMenuStrip
     {

@@ -1,33 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Xml;
 using System.IO;
+using System.ComponentModel;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 
 namespace Densha
 {
-    public class Tag
+    public class Tag : INotifyPropertyChangedBase
     {
         public const int DEFAULT_ID = -1;
 
-        public Tag()
-        {
-            Id = DEFAULT_ID;
-            Type = TagType.Default;
-            FileString = "";
-            Description = "";
-        }
+        public Tag() : this(TagType.Default, "", "") { }
         public Tag(TagType type, string idString, string description)
         {
-            this.Id = DEFAULT_ID;
-            this.Type = type;
-            this.FileString = idString;
-            this.Description = description;
-        }
-
-        public override string ToString()
-        {
-            return ("Tag{" + FileString + "," + Description + "(" + Id.ToString() + ")");
+            _id = DEFAULT_ID;
+            _type = type;
+            _fileString = idString;
+            _description = description;
         }
 
         public static int ComparePriority(Tag t1, Tag t2)
@@ -70,7 +61,19 @@ namespace Densha
             }
         }
 
-        public int Id { get; set; }
+        private int _id = DEFAULT_ID;
+        public int Id
+        {
+            get { return _id; }
+            set
+            {
+                if (_id != value)
+                {
+                    _id = value;
+                    OnPropertyChanged("Id");
+                }
+            }
+        }
 
         private string _description = "";
         public string Description
@@ -78,7 +81,11 @@ namespace Densha
             get { return _description; }
             set
             {
-                _description = value == null ? "" : value;
+                if (_description != value)
+                {
+                    _description = value == null ? "" : value;
+                    OnPropertyChanged("Description");
+                }
             }
         }
 
@@ -88,17 +95,40 @@ namespace Densha
             get { return _fileString; }
             set
             {
-                _fileString = value == null ? "" : value;
+                if (_fileString != value)
+                {
+                    _fileString = value == null ? "" : value;
+                    OnPropertyChanged("FileString");
+                }
             }
         }
-        public TagType Type { get; set; }
+
+        private TagType _type = TagType.Default;
+        public TagType Type
+        {
+            get { return _type; }
+            set
+            {
+                if (_type != value)
+                {
+                    _type = value;
+                    OnPropertyChanged("Type");
+                }
+            }
+        }
+
+        public override string ToString()
+        {
+            return ("Tag{" + FileString + "," + Description + "(" + Id.ToString() + ")}");
+        }
+
 
         public void WriteXml(XmlWriter writer)
         {
             writer.WriteStartElement("tag");
 
             writer.WriteAttributeString("id", Id.ToString());
-            writer.WriteAttributeString("type", Type.ID);
+            writer.WriteAttributeString("type", Type.Id.ToString());
             writer.WriteAttributeString("filestr", FileString);
             writer.WriteAttributeString("desc", Description);
 
@@ -119,9 +149,8 @@ namespace Densha
             else
             {
                 string tid = typeAttr.InnerText.Trim();
-                type = project.TagTypes.Find(delegate(TagType tt) {
-                    return tt.ID == tid;
-                }) ?? TagType.Default;
+                type = project.TagTypes.FindById(tid);
+                if (type == null) type = TagType.Default;
             }
 
             XmlAttribute filestrAttr = node.Attributes["filestr"];
@@ -136,56 +165,22 @@ namespace Densha
         }
     }
 
-    public class TagCollection : List<Tag>
+    public class TagCollection : ObservableCollection<Tag>
     {
         public TagCollection(Project project)
             : base()
         {
-            this.Project = project;
             _rand = new Random(DateTime.Now.Millisecond);
             _idMap = new Dictionary<int, Tag>();
         }
 
-        public Project Project { get; private set; }
         public Tag FindById(int id)
         {
             if (_idMap.ContainsKey(id)) return _idMap[id];
             else return null;
         }
-
         private Dictionary<int, Tag> _idMap = null;
         private Random _rand = null;
-
-        #region 追加系override
-        new public void Add(Tag tag)
-        {
-            if (tag.Id == Tag.DEFAULT_ID) tag.Id = getUniqId();
-            _idMap.Add(tag.Id, tag);
-            base.Add(tag);
-        }
-        new public void AddRange(IEnumerable<Tag> tags)
-        {
-            foreach (Tag tag in tags)
-            {
-                Add(tag);
-            }
-        }
-        new public void Insert(int index, Tag tag)
-        {
-            if (tag.Id == Tag.DEFAULT_ID) tag.Id = getUniqId();
-            _idMap.Add(tag.Id, tag);
-            base.Insert(index, tag);
-        }
-        new public void InsertRange(int index, IEnumerable<Tag> tags)
-        {
-            int i = index;
-            foreach (Tag tag in tags)
-            {
-                Insert(i++, tag);
-            }
-        }
-        #endregion
-
         private int getUniqId()
         {
             int ret = Tag.DEFAULT_ID;
@@ -195,15 +190,41 @@ namespace Densha
             }
             return ret;
         }
-
         public void SetUniqId(Tag tag)
         {
             if (tag.Id == Tag.DEFAULT_ID)
             {
+                tag.PropertyChanged += new PropertyChangedEventHandler(tag_PropertyChanged);
                 tag.Id = getUniqId();
                 _idMap.Add(tag.Id, tag);
             }
         }
+
+        void tag_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            NotifyCollectionChangedEventArgs arg =
+                new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, sender);
+            OnCollectionChanged(arg);
+        }
+
+
+        #region 追加系override
+        new public void Add(Tag tag)
+        {
+            if (tag.Id == Tag.DEFAULT_ID) tag.Id = getUniqId();
+            _idMap.Add(tag.Id, tag);
+            tag.PropertyChanged += new PropertyChangedEventHandler(tag_PropertyChanged);
+            base.Add(tag);
+        }
+
+        new public void Insert(int index, Tag tag)
+        {
+            if (tag.Id == Tag.DEFAULT_ID) tag.Id = getUniqId();
+            _idMap.Add(tag.Id, tag);
+            tag.PropertyChanged += new PropertyChangedEventHandler(tag_PropertyChanged);
+            base.Insert(index, tag);
+        }
+        #endregion
 
         public void WriteXml(XmlWriter writer)
         {

@@ -1,4 +1,4 @@
-﻿namespace Densha
+﻿namespace Densha.view
 {
     partial class ImageTabPanel
     {

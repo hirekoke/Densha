@@ -31,7 +31,6 @@
             this.components = new System.ComponentModel.Container();
             this.tagTypeGridView = new System.Windows.Forms.DataGridView();
             this.tagTypeCollectionBindingSource = new System.Windows.Forms.BindingSource(this.components);
-            this.idDataGridViewTextBoxColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.priorityDataGridViewTextBoxColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.nameDataGridViewTextBoxColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             ((System.ComponentModel.ISupportInitialize)(this.tagTypeGridView)).BeginInit();
@@ -44,7 +43,6 @@
             this.tagTypeGridView.AutoGenerateColumns = false;
             this.tagTypeGridView.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.tagTypeGridView.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
-            this.idDataGridViewTextBoxColumn,
             this.priorityDataGridViewTextBoxColumn,
             this.nameDataGridViewTextBoxColumn});
             this.tagTypeGridView.DataSource = this.tagTypeCollectionBindingSource;
@@ -58,12 +56,6 @@
             // tagTypeCollectionBindingSource
             // 
             this.tagTypeCollectionBindingSource.DataSource = typeof(Densha.TagTypeCollection);
-            // 
-            // idDataGridViewTextBoxColumn
-            // 
-            this.idDataGridViewTextBoxColumn.DataPropertyName = "ID";
-            this.idDataGridViewTextBoxColumn.HeaderText = "ID";
-            this.idDataGridViewTextBoxColumn.Name = "idDataGridViewTextBoxColumn";
             // 
             // priorityDataGridViewTextBoxColumn
             // 
@@ -95,7 +87,6 @@
 
         private System.Windows.Forms.DataGridView tagTypeGridView;
         private System.Windows.Forms.BindingSource tagTypeCollectionBindingSource;
-        private System.Windows.Forms.DataGridViewTextBoxColumn idDataGridViewTextBoxColumn;
         private System.Windows.Forms.DataGridViewTextBoxColumn priorityDataGridViewTextBoxColumn;
         private System.Windows.Forms.DataGridViewTextBoxColumn nameDataGridViewTextBoxColumn;
     }

@@ -30,11 +30,11 @@
         {
             this.components = new System.ComponentModel.Container();
             this.tagGridView = new System.Windows.Forms.DataGridView();
+            this.tagTypeCollectionBindingSource = new System.Windows.Forms.BindingSource(this.components);
+            this.tagCollectionBindingSource = new System.Windows.Forms.BindingSource(this.components);
             this.FileString = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.descriptionDataGridViewTextBoxColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Type = new System.Windows.Forms.DataGridViewComboBoxColumn();
-            this.tagTypeCollectionBindingSource = new System.Windows.Forms.BindingSource(this.components);
-            this.tagCollectionBindingSource = new System.Windows.Forms.BindingSource(this.components);
             ((System.ComponentModel.ISupportInitialize)(this.tagGridView)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.tagTypeCollectionBindingSource)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.tagCollectionBindingSource)).BeginInit();
@@ -57,6 +57,15 @@
             this.tagGridView.Size = new System.Drawing.Size(428, 337);
             this.tagGridView.TabIndex = 0;
             // 
+            // tagTypeCollectionBindingSource
+            // 
+            this.tagTypeCollectionBindingSource.DataSource = typeof(Densha.TagTypeCollection);
+            // 
+            // tagCollectionBindingSource
+            // 
+            this.tagCollectionBindingSource.AllowNew = true;
+            this.tagCollectionBindingSource.DataSource = typeof(Densha.TagCollection);
+            // 
             // FileString
             // 
             this.FileString.DataPropertyName = "FileString";
@@ -74,19 +83,10 @@
             // 
             this.Type.DataPropertyName = "Type";
             this.Type.DataSource = this.tagTypeCollectionBindingSource;
-            this.Type.DisplayMember = "ID";
+            this.Type.DisplayMember = "Name";
             this.Type.HeaderText = "タグタイプ";
             this.Type.Name = "Type";
             this.Type.ValueMember = "Self";
-            // 
-            // tagTypeCollectionBindingSource
-            // 
-            this.tagTypeCollectionBindingSource.DataSource = typeof(Densha.TagTypeCollection);
-            // 
-            // tagCollectionBindingSource
-            // 
-            this.tagCollectionBindingSource.AllowNew = true;
-            this.tagCollectionBindingSource.DataSource = typeof(Densha.TagCollection);
             // 
             // TagForm
             // 

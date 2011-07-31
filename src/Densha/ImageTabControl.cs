@@ -8,7 +8,7 @@ using System.Windows.Forms;
 
 using System.Runtime.InteropServices;
 
-namespace Densha
+namespace Densha.view
 {
     partial class ImageTabControl : TabControl
     {

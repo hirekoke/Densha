@@ -36,8 +36,12 @@ namespace Densha {
 
         public static string GetRelativePath(string path)
         {
+            return GetRelativePath(path, AppDomain.CurrentDomain.BaseDirectory);
+        }
+        public static string GetRelativePath(string path, string basePath)
+        {
             if (path == "") return "";
-            Uri baseUri = new Uri(AppDomain.CurrentDomain.BaseDirectory);
+            Uri baseUri = new Uri(basePath);
             Uri absoluteUri = new Uri(path);
             Uri relativeUri = baseUri.MakeRelativeUri(absoluteUri);
             string relativePath = relativeUri.ToString().Replace('/', Path.DirectorySeparatorChar);

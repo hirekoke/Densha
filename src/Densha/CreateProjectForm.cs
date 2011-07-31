@@ -16,14 +16,13 @@ namespace Densha
 
             originalDirBox.Text = System.IO.Path.GetFullPath(origDir);
             thumbnailDirBox.Text = System.IO.Path.GetFullPath(thumbDir);
+
             useExistThumbDirButton.Checked = true;
             thumbPatternBox.Text = _thumbnailNamePattern;
 
             okButton.Click += new EventHandler(okButton_Click);
             cancelButton.Click += new EventHandler(cancelButton_Click);
 
-            originalDirSelectButton.Click += new EventHandler(originalDirSelectButton_Click);
-            thumbnailDirSelectButton.Click += new EventHandler(thumbnailDirSelectButton_Click);
         }
 
         private string _originalDirPath = AppDomain.CurrentDomain.BaseDirectory;
@@ -59,7 +58,7 @@ namespace Densha
             }
             else
             {
-                MessageBox.Show(this, "サムネイルの生成方法を選択してください", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                MessageBox.Show(this, "サムネイルの生成方法を選択してください", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
         private void cancelButton_Click(object sender, EventArgs e)

@@ -1,4 +1,5 @@
-﻿namespace Densha
+﻿
+namespace Densha.view
 {
     partial class ImageTabControl
     {

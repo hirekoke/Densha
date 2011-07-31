@@ -7,7 +7,7 @@ using System.Data;
 using System.Text;
 using System.Windows.Forms;
 
-namespace Densha
+namespace Densha.view
 {
     partial class ImageList : UserControl
     {
@@ -28,6 +28,8 @@ namespace Densha
             }
         }
 
+        private TimeSpan _timeClusteringThr = TimeSpan.FromMinutes(10);
+
         private bool _showUnusedItems = true;
         public bool ShowUnusedItems
         {
@@ -45,6 +47,7 @@ namespace Densha
         private int _viewIndexMin = 0;
         private int _viewIndexMax = 0;
         private int _heightSum = 0;
+        private int _lineNum = 2;
 
         public ImageList()
         {
@@ -57,7 +60,8 @@ namespace Densha
 
             _recitalBox.TextBox = new TextBox();
             _recitalBox.ListItem = null;
-            _recitalBox.TextBox.LostFocus += new EventHandler(_textBox_LostFocus);
+            _recitalBox.TextBox.KeyDown += new KeyEventHandler(TextBox_KeyDown);
+            _recitalBox.TextBox.LostFocus += new EventHandler(TextBox_LostFocus);
             vScrollBar.ValueChanged += new EventHandler(vScrollBar_ValueChanged);
         }
 
@@ -124,6 +128,7 @@ namespace Densha
             }
             else
             {
+                CloseTextBox();
                 DeselectAllImages();
             }
             if (_prevHitItem != null && _prevHitItem != hit)
@@ -228,7 +233,7 @@ namespace Densha
         {
             base.OnMouseWheel(e);
 
-            int delta = (int)(e.Delta / 2.0);
+            int delta = (int)(e.Delta / 2.0) * _lineNum;
 
             if (vScrollBar.Value - delta < vScrollBar.Minimum)
             {
@@ -236,7 +241,10 @@ namespace Densha
             }
             else if (vScrollBar.Value - delta > vScrollBar.Maximum - vScrollBar.LargeChange)
             {
-                vScrollBar.Value = vScrollBar.Maximum - vScrollBar.LargeChange;
+                int v = vScrollBar.Maximum - vScrollBar.LargeChange;
+                if (v < vScrollBar.Minimum) vScrollBar.Value = vScrollBar.Minimum;
+                else if (v > vScrollBar.Maximum) vScrollBar.Value = vScrollBar.Maximum;
+                else vScrollBar.Value = v;
             }
             else
             {
@@ -370,7 +378,9 @@ namespace Densha
                 item.UpdateTagLayout();
             }
         }
+        #endregion
 
+        #region レイアウト
         /// <summary>
         /// 保持しているイメージの座標を決める
         /// </summary>
@@ -395,36 +405,56 @@ namespace Densha
             int max = min + height;
             
             int i = -1;
-            int top = Padding.Top;
+            int vi = 0;
+            int prevX = Padding.Left;
+            int prevY = Padding.Top;
+            int lineY = Padding.Top;
             using (Graphics g = this.CreateGraphics())
             {
                 lock (_items)
                 {
+                    _lineNum = (int)Math.Floor((vScrollBar.Left - this.Padding.Left) / (double)Config.Instance.MinimumItemWidth);
+                    if (_lineNum < 1) _lineNum = 1;
+
                     foreach (ImageListItem item in _items)
                     {
                         i++;
                         if (!_showUnusedItems && !item.DenshaImage.IsUsed) continue;
 
-                        item.Width = vScrollBar.Left - this.Padding.Left - item.Margin.Horizontal;
+                        item.Width = (int)((vScrollBar.Left - this.Padding.Left) / (double)_lineNum) - item.Margin.Horizontal;
                         item.Layout(g);
 
-                        item.X = this.Padding.Left + item.Margin.Left;
-                        item.Y = top + item.Margin.Top;
+                        item.X = prevX + item.Margin.Left;
+                        prevX = item.Bounds.Right + item.Margin.Right;
 
-                        top += item.Margin.Vertical + item.Height;
-                        heightSum += item.Height + item.Margin.Vertical;
+                        item.Y = lineY + item.Margin.Top;
+                        int y = item.Bounds.Bottom + item.Margin.Bottom;
+                        if (y > prevY) prevY = y;
 
-                        if (min <= item.Y + item.Height + item.Margin.Bottom && min >= item.Y - item.Margin.Top)
+                        if (min <= item.Y + item.Height + item.Margin.Bottom &&
+                            min >= item.Y - item.Margin.Top && 
+                            vi == 0)
                         {
                             viewMin = i;
                         }
-                        if (max <= item.Y + item.Height + item.Margin.Bottom && max >= item.Y - item.Margin.Top)
+                        if (max <= item.Y + item.Height + item.Margin.Bottom &&
+                            max >= item.Y - item.Margin.Top)
                         {
                             viewMax = i;
+                        }
+
+                        vi++;
+                        if (vi >= _lineNum)
+                        {
+                            vi = 0;
+                            prevX = Padding.Left;
+                            lineY = prevY;
                         }
                     }
                 }
             }
+            heightSum = prevY + this.Padding.Bottom;
+
             if (heightSum <= height)
             {
                 viewMin = 0;
@@ -439,7 +469,7 @@ namespace Densha
             }
             _viewIndexMin = viewMin;
             _viewIndexMax = viewMax;
-            _heightSum = heightSum + Padding.Vertical;
+            _heightSum = heightSum;
 
             #region スクロールバー制御
             if (vScrollBar.Minimum != 0)
@@ -465,6 +495,7 @@ namespace Densha
         }
         #endregion
 
+        #region 操作
         /// <summary>
         /// 指定したイメージの部分にまでスクロールする
         /// </summary>
@@ -477,7 +508,7 @@ namespace Densha
             });
             if (found != null && _heightSum != 0)
             {
-                int v = (int)(found.Y - found.Height / 3.0);
+                int v = (int)(found.Y/* - found.Height / 3.0*/);
                 int vm = v + this.Height;
                 vScrollBar.Value = v < vScrollBar.Minimum ? vScrollBar.Minimum :
                     (vm > _heightSum ? vScrollBar.Maximum - this.Height : v);
@@ -495,6 +526,7 @@ namespace Densha
             for (int i = _viewIndexMin; i <= _viewIndexMax; i++)
             {
                 ImageListItem item = _items[i];
+                if (!_showUnusedItems && !item.DenshaImage.IsUsed) continue;
                 if (item.Contains(p))
                 {
                     return item;
@@ -502,7 +534,9 @@ namespace Densha
             }
             return null;
         }
+        #endregion
 
+        #region Recital TextBox
         private struct RecitalBox
         {
             public TextBox TextBox;
@@ -554,10 +588,18 @@ namespace Densha
                 this.Invalidate();
             }
         }
-        private void _textBox_LostFocus(object sender, EventArgs e)
+        private void TextBox_LostFocus(object sender, EventArgs e)
         {
             CloseTextBox();
         }
+        private void TextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Return)
+            {
+                CloseTextBox();
+            }
+        }
+        #endregion
 
         #region 選択
         private int _focusIdx = 0;
@@ -625,6 +667,46 @@ namespace Densha
         }
         #endregion
 
+        #region 類似選択
+        public void SelectTimeCluster(ImageListItem item)
+        {
+            int idx = _items.IndexOf(item);
+            if (idx >= 0)
+            {
+                SelectTimeCluster(idx);
+            }
+        }
+        public void SelectTimeCluster(int startIdx)
+        {
+            DeselectAllImages();
+
+            _items[startIdx].Selected = true;
+
+            // 前方方向
+            if (startIdx >= 1)
+            {
+                for (int i = startIdx - 1; i >= 0; i--)
+                {
+                    TimeSpan ts = _items[i + 1].DenshaImage.ShootingTime.Subtract(
+                        _items[i].DenshaImage.ShootingTime);
+                    if (ts >= _timeClusteringThr) break;
+                    else _items[i].Selected = true;
+                }
+            }
+            // 後方方向
+            if (startIdx <= _items.Count - 2)
+            {
+                for (int i = startIdx + 1; i <= _items.Count - 1; i++)
+                {
+                    TimeSpan ts = _items[i].DenshaImage.ShootingTime.Subtract(
+                        _items[i - 1].DenshaImage.ShootingTime);
+                    if (ts >= _timeClusteringThr) break;
+                    else _items[i].Selected = true;
+                }
+            }
+        }
+        #endregion
+
         #region ドロップ
         protected override void OnDragOver(DragEventArgs e)
         {
@@ -655,13 +737,7 @@ namespace Densha
                     {
                         if (itm.Selected)
                         {
-                            foreach (ImageListItem item in SelectedItems)
-                            {
-                                if (_showUnusedItems || item.DenshaImage.IsUsed)
-                                {
-                                    Program.MainForm.AddTag(this, item, tag);
-                                }
-                            }
+                            Program.MainForm.AddTags(this, tag);
                         }
                         else
                         {

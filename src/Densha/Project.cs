@@ -4,95 +4,122 @@ using System.Text;
 
 using System.IO;
 using System.Xml;
-using System.Xml.Serialization;
 
 using System.ComponentModel;
+using System.Collections.Specialized;
 
 namespace Densha
 {
-    public class Project
+    public class Project : INotifyPropertyChangedBase
     {
         public Project()
         {
-            this.Tags = new TagCollection(this);
+            _notifyChange = false;
+
+            _tagTypes.CollectionChanged += new NotifyCollectionChangedEventHandler(_tagTypes_CollectionChanged);
+            _tags = new TagCollection(this);
+            _tags.CollectionChanged += new NotifyCollectionChangedEventHandler(_tags_CollectionChanged);
+
         }
+
+        private bool _notifyChange = false;
 
         public string ProjectFilePath { get; set; }
 
         #region データ
         protected string _originalPath = ".";
-        /// <summary>
-        /// 元画像のあるディレクトリ
-        /// </summary>
+        /// <summary>元画像のあるディレクトリ</summary>
         public string OriginalPath
         {
             get { return _originalPath; }
             set
             {
-                _originalPath = value;
+                if (_originalPath != value)
+                {
+                    _originalPath = value;
+                    OnPropertyChanged("OriginalPath");
+                    OnPropertyChanged("OriginalFullPath");
+                }
                 if (string.IsNullOrEmpty(_originalPath))
+                {
                     _originalPath = ".";
+                    OnPropertyChanged("OriginalPath");
+                    OnPropertyChanged("OriginalFullPath");
+                }
             }
         }
-        /// <summary>
-        /// 元画像のあるディレクトリ
-        /// </summary>
-        [XmlIgnore()]
-        public string OriginalFullPath
-        {
-            get { return Path.GetFullPath(_originalPath); }
-        }
+        /// <summary>元画像のあるディレクトリ</summary>
+        public string OriginalFullPath { get { return Path.GetFullPath(_originalPath); } }
 
         protected string _thumbnailPath = ".";
-        /// <summary>
-        /// サムネイル画像のあるディレクトリ
-        /// </summary>
+        /// <summary>サムネイル画像のあるディレクトリ</summary>
         public string ThumbnailPath
         {
             get { return _thumbnailPath; }
             set
             {
-                _thumbnailPath = value;
+                if (_thumbnailPath != value)
+                {
+                    _thumbnailPath = value;
+                    OnPropertyChanged("ThumbnailPath");
+                    OnPropertyChanged("ThumbnailFullPath");
+                }
                 if (string.IsNullOrEmpty(_thumbnailPath))
+                {
                     _thumbnailPath = ".";
+                    OnPropertyChanged("ThumbnailPath");
+                    OnPropertyChanged("ThumbnailFullPath");
+                }
             }
         }
-        /// <summary>
-        /// サムネイル画像のあるディレクトリ
-        /// </summary>
-        [XmlIgnore()]
-        public string ThumbnailFullPath
-        {
-            get { return Path.GetFullPath(_thumbnailPath); }
-        }
+        /// <summary>サムネイル画像のあるディレクトリ</summary>
+        public string ThumbnailFullPath { get { return Path.GetFullPath(_thumbnailPath); } }
 
         protected TagTypeCollection _tagTypes = new TagTypeCollection();
-        /// <summary>
-        /// タグ種類のセット
-        /// </summary>
+        /// <summary>タグ種類のセット</summary>
         public TagTypeCollection TagTypes
         {
             get { return _tagTypes; }
             set
-            { //_tagTypes = new TagTypeCollection(value); 
-                _tagTypes = value;
+            {
+                if (_tagTypes != value)
+                {
+                    _tagTypes = value;
+                    _tagTypes.CollectionChanged += new NotifyCollectionChangedEventHandler(_tagTypes_CollectionChanged);
+                    OnPropertyChanged("TagTypes");
+                }
             }
         }
 
-        /// <summary>
-        /// タグのセット
-        /// </summary>
-        public TagCollection Tags { get; private set; }
+        protected TagCollection _tags = null;
+        /// <summary>タグのセット</summary>
+        public TagCollection Tags
+        {
+            get { return _tags; }
+            set
+            {
+                if (_tags != value)
+                {
+                    _tags = value;
+                    _tags.CollectionChanged += new NotifyCollectionChangedEventHandler(_tags_CollectionChanged);
+                    OnPropertyChanged("Tags");
+                }
+            }
+        }
 
         protected List<DenshaImage> _images = new List<DenshaImage>();
-        /// <summary>
-        /// 画像オブジェクト
-        /// </summary>
-        [XmlIgnore()]
+        /// <summary>画像オブジェクト</summary>
         public List<DenshaImage> Images
         {
             get { return _images; }
-            set { _images = value; }
+            set
+            {
+                if (_images != value)
+                {
+                    _images = value;
+                    OnPropertyChanged("Images");
+                }
+            }
         }
         private Dictionary<string, DenshaImage> _imgIdMap = new Dictionary<string, DenshaImage>();
         public DenshaImage GetImageById(string id)
@@ -107,22 +134,71 @@ namespace Densha
             }
         }
 
+        public int UsedCount
+        {
+            get
+            {
+                int n = 0;
+                foreach (DenshaImage img in _images)
+                {
+                    if (img.IsUsed) n++;
+                }
+                return n;
+            }
+        }
+
+        private void _tagTypes_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (_notifyChange)
+            {
+                if (e.Action == NotifyCollectionChangedAction.Add)
+                {
+                    TagType newItem = e.NewItems[0] as TagType;
+                    if (newItem != null && newItem.Id == TagType.DEFAULT_ID) return;
+                }
+                OnPropertyChanged("TagTypes");
+            }
+        }
+        private void _tags_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            if (_notifyChange)
+            {
+                if (e.Action == NotifyCollectionChangedAction.Add)
+                {
+                    Tag newItem = e.NewItems[0] as Tag;
+                    if (newItem != null && newItem.Id == Tag.DEFAULT_ID) return;
+                }
+                OnPropertyChanged("Tags");
+            }
+        }
+        private void image_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (_notifyChange)
+            {
+                if (e.PropertyName == "IsUsed")
+                    OnPropertyChanged("UsedCount");
+                OnPropertyChanged("Images");
+            }
+        }
         #endregion データ
 
+        #region 操作
         public void AddImage(DenshaImage image)
         {
             if (!_imgIdMap.ContainsKey(image.Id))
             {
                 _images.Add(image);
                 _imgIdMap.Add(image.Id, image);
+                image.PropertyChanged += new PropertyChangedEventHandler(image_PropertyChanged);
             }
             else
             {
 #warning TODO: throw exception
             }
         }
+        #endregion
 
-
+        #region 保存・読み込み
         public void WriteXml(XmlWriter writer)
         {
             writer.WriteStartElement("project");
@@ -153,22 +229,21 @@ namespace Densha
 
         public static Project ReadXml(XmlDocument doc, BackgroundWorker worker)
         {
-            if (doc.FirstChild.Name != "project") return null;
+            if (doc.GetElementsByTagName("project") == null) return null;
 
             Project project = new Project();
-            XmlNodeList lst;
-            
-            lst = doc.GetElementsByTagName("origpath");
-            if (lst.Count != 1) return null;
-            project.OriginalPath = lst[0].InnerText.Trim();
 
-            lst = doc.GetElementsByTagName("thumbpath");
-            if (lst.Count != 1) return null;
-            project.ThumbnailPath = lst[0].InnerText.Trim();
+            XmlNode origpathNode = doc.SelectSingleNode("/project/origpath");
+            if (origpathNode == null) return null;
+            project.OriginalPath = origpathNode.InnerText.Trim();
 
-            lst = doc.GetElementsByTagName("tagtypes");
-            if (lst.Count != 1) return null;
-            TagTypeCollection ttcol = TagTypeCollection.ReadXml(project, lst[0]);
+            XmlNode thumbpathNode = doc.SelectSingleNode("/project/thumbpath");
+            if (thumbpathNode == null) return null;
+            project.ThumbnailPath = thumbpathNode.InnerText.Trim();
+
+            XmlNode tagtypesNode = doc.SelectSingleNode("/project/tagtypes");
+            if (tagtypesNode == null) return null;
+            TagTypeCollection ttcol = TagTypeCollection.ReadXml(project, tagtypesNode);
             project.TagTypes = ttcol;
 
             XmlNode tagNode = doc.SelectSingleNode("/project/tags");
@@ -176,23 +251,20 @@ namespace Densha
             TagCollection tcol = TagCollection.ReadXml(project, tagNode);
             project.Tags = tcol;
 
-            lst = doc.GetElementsByTagName("images");
-            if (lst.Count != 1) return null;
-
-            float imgCount = lst[0].ChildNodes.Count - 1;
+            XmlNode imagesNode = doc.SelectSingleNode("/project/images");
+            if (imagesNode == null) return null;
+            float imgCount = imagesNode.ChildNodes.Count - 1;
             int i = 0;
-            int weight = Config.Instance.StatusProgressBarWidth;
-            foreach (XmlNode imgNode in lst[0].ChildNodes)
+            foreach (XmlNode imgNode in imagesNode.ChildNodes)
             {
                 DenshaImage img = DenshaImage.ReadXml(project, imgNode);
                 if (img != null) project.AddImage(img);
                 if (worker != null)
                 {
-                    worker.ReportProgress((int)(i * weight / imgCount), "loading images");
+                    worker.ReportProgress((int)(i * 100 / imgCount), "loading images");
                     i++;
                 }
             }
-
             return project;
         }
 
@@ -200,7 +272,7 @@ namespace Densha
         {
             XmlWriterSettings settings = new XmlWriterSettings();
             settings.Indent = true;
-            settings.OmitXmlDeclaration = true;
+            settings.OmitXmlDeclaration = false;
             settings.CheckCharacters = true;
 
             try
@@ -231,14 +303,16 @@ namespace Densha
                 project = Project.ReadXml(doc, worker);
             }
 
+            if (project == null) return null;
             project.ProjectFilePath = fileName;
+
+            project._notifyChange = true;
             return project;
         }
 
         public static Project CreateProject(string origDirPath, string thumbDirPath, string thumbnailNamePattern, BackgroundWorker worker)
         {
             worker.ReportProgress(0, "creating project");
-            int weight = Config.Instance.StatusProgressBarWidth;
 
             Project project = new Project();
             project.OriginalPath = origDirPath;
@@ -264,16 +338,21 @@ namespace Densha
                         Utilities.ApplyThumbnailNamePattern(fInfo.Name, thumbnailNamePattern));
                     project.AddImage(img);
 
-                    worker.ReportProgress((int)(i * weight / imgCount), "loading images");
+                    worker.ReportProgress((int)(i * 100 / imgCount), "loading images");
                     i++;
                 }
             }
+            project.ProjectFilePath = null;
 
-            worker.ReportProgress(weight, "creating project");
+            worker.ReportProgress(100, "creating project");
 
+            project._notifyChange = true;
             return project;
         }
 
+        #endregion
+
+        #region 出力
         public IEnumerable<string> GetCommands(string destDir)
         {
             int i = 0;
@@ -282,15 +361,18 @@ namespace Densha
                 if (img.IsUsed)
                 {
                     string line = string.Format(
-                        "copy \"{0}\" \"{1}\"",
-                        img.OriginalFullPath,
-                        Path.Combine(destDir, 
-                        i.ToString("D3") + "-" + img.FileName + img.ExtName)
+                        "cp \"{0}\" \"{1}\"",
+                        Utilities.GetRelativePath(img.OriginalFullPath, ProjectFilePath),
+                        Utilities.GetRelativePath(
+                            Path.Combine(destDir, 
+                            i.ToString("D3") + Config.Instance.TagDelimiter + img.FileName + img.ExtName),
+                            ProjectFilePath)
                         );
                     yield return line;
                     i++;
                 }
             }
         }
+        #endregion
     }
 }

@@ -14,13 +14,34 @@ namespace Densha
         {
             InitializeComponent();
 
+            tagTypeGridView.CellValidating += new DataGridViewCellValidatingEventHandler(OnCellValidating);
             tagTypeGridView.CellEndEdit += new DataGridViewCellEventHandler(OnCellEndEdit);
+        }
+
+        void OnCellValidating(object sender, DataGridViewCellValidatingEventArgs e)
+        {
+            if (tagTypeGridView.Columns[e.ColumnIndex].DataPropertyName == "Priority")
+            {
+                int r = 0;
+                if (!int.TryParse(e.FormattedValue.ToString(), out r))
+                {
+                    e.Cancel = true;
+                    errors.ErrorHandler.HandleAllError("整数を入力してください");
+                }
+            }
         }
 
         void OnCellEndEdit(object sender, DataGridViewCellEventArgs e)
         {
-            if(Program.MainForm != null)
-                Program.MainForm.UpdateTagType(this, (tagTypeGridView.Rows[e.RowIndex].DataBoundItem) as TagType);
+            tagTypeGridView[e.ColumnIndex, e.RowIndex].ErrorText = null;
+            TagType tt = tagTypeGridView.Rows[e.RowIndex].DataBoundItem as TagType;
+            if (tt != null)
+            {
+                _tagTypes.SetUniqId(tt);
+
+                if (Program.MainForm != null)
+                    Program.MainForm.UpdateTagType(this, tt);
+            }
         }
 
         private TagTypeCollection _tagTypes = null;
@@ -45,8 +66,6 @@ namespace Densha
             base.OnClosing(e);
             if (!Disposing)
             {
-                e.Cancel = true;
-                this.Visible = false;
                 if(Program.MainForm != null)
                 {
                     Program.MainForm.ShowTagTypeForm(this, false);

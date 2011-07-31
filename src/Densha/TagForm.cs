@@ -67,15 +67,18 @@ namespace Densha
                         else
                         {
                             _grabRow = hit.RowIndex;
-                            tagGridView.InvalidateRow(_grabRow);
-
-                            Tag tag = tagGridView.Rows[_grabRow].DataBoundItem as Tag;
-                            if (tag != null)
+                            if (_grabRow >= 0 && _grabRow < tagGridView.Rows.Count)
                             {
-                                DataObject dobj = new DataObject(Properties.Resources.DndIdTag, tag);
-                                tagGridView.DoDragDrop(dobj, DragDropEffects.Copy);
+                                tagGridView.InvalidateRow(_grabRow);
+
+                                Tag tag = tagGridView.Rows[_grabRow].DataBoundItem as Tag;
+                                if (tag != null)
+                                {
+                                    DataObject dobj = new DataObject(Properties.Resources.DndIdTag, tag);
+                                    tagGridView.DoDragDrop(dobj, DragDropEffects.Copy);
+                                }
+                                tagGridView.InvalidateRow(_grabRow);
                             }
-                            tagGridView.InvalidateRow(_grabRow);
                             _grabRow = -1;
                             _grabPoint = Point.Empty;
                         }
@@ -109,10 +112,10 @@ namespace Densha
             if (tag != null)
             {
                 _tags.SetUniqId(tag);
-            }
 
-            if(Program.MainForm != null)
-                Program.MainForm.UpdateTag(this, (tagGridView.Rows[e.RowIndex].DataBoundItem) as Tag);
+                if (Program.MainForm != null)
+                    Program.MainForm.UpdateTag(this, tag);
+            }
         }
 
         private void tagGridView_RowsAdded(object sender, DataGridViewRowsAddedEventArgs e)
@@ -161,8 +164,6 @@ namespace Densha
             base.OnClosing(e);
             if (!Disposing)
             {
-                e.Cancel = true;
-                this.Visible = false;
                 if (Program.MainForm != null)
                 {
                     Program.MainForm.ShowTagForm(this, false);

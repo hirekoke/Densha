@@ -7,7 +7,7 @@ using System.Windows.Forms;
 using System.Windows.Forms.VisualStyles;
 using System.IO;
 
-namespace Densha
+namespace Densha.view
 {
     partial class ImageListItem : IDisposable
     {
@@ -254,14 +254,22 @@ namespace Densha
 
         private void paintBackground(Graphics g)
         {
+            // 背景
+            Color color = Selected ?
+                Config.Designs.ItemBGSelectedColor :
+                Config.Designs.ItemBGColor;
+            g.FillRectangle(new SolidBrush(color), 0, 0, _width, _height);
             if (_hovered)
             {
-                g.FillRectangle(Brushes.Black, 2, 2, _width, _height);
+                int rd = (int)(color.R / 2.0);
+                int gr = (int)(color.G / 2.0);
+                int bl = (int)(color.B / 2.0);
+                Color color2 = Color.FromArgb(color.A,
+                    rd > 255 ? 255 : rd, gr > 255 ? 255 : gr, bl > 255 ? 255 : bl);
+                SolidBrush brush = new SolidBrush(color2);
+                g.FillRectangle(brush, _width, 2, 2, _height);
+                g.FillRectangle(brush, 2, _height, _width - 2, 2);
             }
-            // 背景
-            g.FillRectangle(new SolidBrush(Selected ? 
-                Config.Designs.ItemBGSelectedColor :
-                Config.Designs.ItemBGColor), 0, 0, _width, _height);
             ControlPaint.DrawVisualStyleBorder(g, new Rectangle(0, 0, _width, _height));
         }
 

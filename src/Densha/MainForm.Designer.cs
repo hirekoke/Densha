@@ -1,4 +1,4 @@
-﻿namespace Densha {
+﻿namespace Densha.view {
     partial class MainForm {
         /// <summary>
         /// 必要なデザイナ変数です。
@@ -26,10 +26,9 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             this.toolStripContainer = new System.Windows.Forms.ToolStripContainer();
             this.statusStrip = new System.Windows.Forms.StatusStrip();
-            this.statusProgressBar = new System.Windows.Forms.ToolStripProgressBar();
             this.mainSplit = new System.Windows.Forms.SplitContainer();
-            this.imageList = new Densha.ImageList();
-            this.imageTabs = new Densha.ImageTabControl();
+            this.imageList = new Densha.view.ImageList();
+            this.imageTabs = new Densha.view.ImageTabControl();
             this.mainMenu = new System.Windows.Forms.MenuStrip();
             this.menuFileItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuNewProjectItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -38,6 +37,8 @@
             this.menuSaveasItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuEditItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuExportCommandItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
+            this.menuConfigItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuViewItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuShowTagTypeItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuShowTagItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -45,7 +46,10 @@
             this.tagTypeFormViewButton = new System.Windows.Forms.ToolStripButton();
             this.tagFormViewButton = new System.Windows.Forms.ToolStripButton();
             this.showUnusedButton = new System.Windows.Forms.ToolStripButton();
-            this.statusProgressLabel = new System.Windows.Forms.ToolStripStatusLabel();
+            this.toolStripButton1 = new System.Windows.Forms.ToolStripButton();
+            this.usingImageStatusUsing = new System.Windows.Forms.ToolStripStatusLabel();
+            this.usingImageStatusSep = new System.Windows.Forms.ToolStripStatusLabel();
+            this.usingImageStatusAll = new System.Windows.Forms.ToolStripStatusLabel();
             this.toolStripContainer.BottomToolStripPanel.SuspendLayout();
             this.toolStripContainer.ContentPanel.SuspendLayout();
             this.toolStripContainer.TopToolStripPanel.SuspendLayout();
@@ -85,21 +89,13 @@
             // 
             this.statusStrip.Dock = System.Windows.Forms.DockStyle.None;
             this.statusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.statusProgressLabel,
-            this.statusProgressBar});
+            this.usingImageStatusUsing,
+            this.usingImageStatusSep,
+            this.usingImageStatusAll});
             this.statusStrip.Location = new System.Drawing.Point(0, 0);
             this.statusStrip.Name = "statusStrip";
             this.statusStrip.Size = new System.Drawing.Size(673, 23);
             this.statusStrip.TabIndex = 0;
-            // 
-            // statusProgressBar
-            // 
-            this.statusProgressBar.AutoSize = false;
-            this.statusProgressBar.Maximum = 200;
-            this.statusProgressBar.Name = "statusProgressBar";
-            this.statusProgressBar.Size = new System.Drawing.Size(400, 17);
-            this.statusProgressBar.Style = System.Windows.Forms.ProgressBarStyle.Continuous;
-            this.statusProgressBar.Visible = false;
             // 
             // mainSplit
             // 
@@ -195,7 +191,9 @@
             // menuEditItem
             // 
             this.menuEditItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.menuExportCommandItem});
+            this.menuExportCommandItem,
+            this.toolStripSeparator1,
+            this.menuConfigItem});
             this.menuEditItem.Name = "menuEditItem";
             this.menuEditItem.Size = new System.Drawing.Size(61, 22);
             this.menuEditItem.Text = "編集(&E)";
@@ -205,6 +203,17 @@
             this.menuExportCommandItem.Name = "menuExportCommandItem";
             this.menuExportCommandItem.Size = new System.Drawing.Size(160, 22);
             this.menuExportCommandItem.Text = "コマンド出力...";
+            // 
+            // toolStripSeparator1
+            // 
+            this.toolStripSeparator1.Name = "toolStripSeparator1";
+            this.toolStripSeparator1.Size = new System.Drawing.Size(157, 6);
+            // 
+            // menuConfigItem
+            // 
+            this.menuConfigItem.Name = "menuConfigItem";
+            this.menuConfigItem.Size = new System.Drawing.Size(160, 22);
+            this.menuConfigItem.Text = "設定...";
             // 
             // menuViewItem
             // 
@@ -235,10 +244,11 @@
             this.toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.tagTypeFormViewButton,
             this.tagFormViewButton,
-            this.showUnusedButton});
+            this.showUnusedButton,
+            this.toolStripButton1});
             this.toolStrip1.Location = new System.Drawing.Point(3, 26);
             this.toolStrip1.Name = "toolStrip1";
-            this.toolStrip1.Size = new System.Drawing.Size(252, 25);
+            this.toolStrip1.Size = new System.Drawing.Size(275, 25);
             this.toolStrip1.TabIndex = 1;
             // 
             // tagTypeFormViewButton
@@ -272,12 +282,32 @@
             this.showUnusedButton.Size = new System.Drawing.Size(84, 22);
             this.showUnusedButton.Text = "非選択も表示";
             // 
-            // statusProgressLabel
+            // toolStripButton1
             // 
-            this.statusProgressLabel.Name = "statusProgressLabel";
-            this.statusProgressLabel.Size = new System.Drawing.Size(134, 18);
-            this.statusProgressLabel.Text = "toolStripStatusLabel1";
-            this.statusProgressLabel.Visible = false;
+            this.toolStripButton1.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripButton1.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButton1.Image")));
+            this.toolStripButton1.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.toolStripButton1.Name = "toolStripButton1";
+            this.toolStripButton1.Size = new System.Drawing.Size(23, 22);
+            this.toolStripButton1.Text = "toolStripButton1";
+            // 
+            // usingImageStatusUsing
+            // 
+            this.usingImageStatusUsing.Name = "usingImageStatusUsing";
+            this.usingImageStatusUsing.Size = new System.Drawing.Size(40, 18);
+            this.usingImageStatusUsing.Text = "Using";
+            // 
+            // usingImageStatusSep
+            // 
+            this.usingImageStatusSep.Name = "usingImageStatusSep";
+            this.usingImageStatusSep.Size = new System.Drawing.Size(13, 18);
+            this.usingImageStatusSep.Text = "/";
+            // 
+            // usingImageStatusAll
+            // 
+            this.usingImageStatusAll.Name = "usingImageStatusAll";
+            this.usingImageStatusAll.Size = new System.Drawing.Size(22, 18);
+            this.usingImageStatusAll.Text = "All";
             // 
             // MainForm
             // 
@@ -287,7 +317,7 @@
             this.Controls.Add(this.toolStripContainer);
             this.MainMenuStrip = this.mainMenu;
             this.Name = "MainForm";
-            this.Text = "Densha";
+            this.Text = "電写";
             this.toolStripContainer.BottomToolStripPanel.ResumeLayout(false);
             this.toolStripContainer.BottomToolStripPanel.PerformLayout();
             this.toolStripContainer.ContentPanel.ResumeLayout(false);
@@ -316,8 +346,8 @@
         private System.Windows.Forms.SplitContainer mainSplit;
         private System.Windows.Forms.ToolStripMenuItem menuFileItem;
         private System.Windows.Forms.ToolStripMenuItem menuNewProjectItem;
-        private ImageList imageList;
-        private ImageTabControl imageTabs;
+        private Densha.view.ImageList imageList;
+        private Densha.view.ImageTabControl imageTabs;
         private System.Windows.Forms.ToolStripMenuItem menuEditItem;
         private System.Windows.Forms.ToolStripMenuItem menuViewItem;
         private System.Windows.Forms.ToolStripMenuItem menuShowTagTypeItem;
@@ -330,8 +360,12 @@
         private System.Windows.Forms.ToolStripMenuItem menuShowTagItem;
         private System.Windows.Forms.ToolStripMenuItem menuExportCommandItem;
         private System.Windows.Forms.ToolStripButton showUnusedButton;
-        private System.Windows.Forms.ToolStripProgressBar statusProgressBar;
-        private System.Windows.Forms.ToolStripStatusLabel statusProgressLabel;
+        private System.Windows.Forms.ToolStripButton toolStripButton1;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
+        private System.Windows.Forms.ToolStripMenuItem menuConfigItem;
+        private System.Windows.Forms.ToolStripStatusLabel usingImageStatusUsing;
+        private System.Windows.Forms.ToolStripStatusLabel usingImageStatusSep;
+        private System.Windows.Forms.ToolStripStatusLabel usingImageStatusAll;
     }
 }
 

@@ -7,13 +7,12 @@ using System.Drawing.Imaging;
 
 using System.IO;
 using System.Xml;
-using System.Xml.Serialization;
 
 using System.Windows.Media.Imaging;
 
 namespace Densha
 {
-    public class DenshaImage
+    public class DenshaImage : INotifyPropertyChangedBase
     {
         public DenshaImage(Project project, string fileName)
             : this(project, fileName, "s-" + fileName)
@@ -28,6 +27,15 @@ namespace Densha
             ThumbnailName = Path.GetFileNameWithoutExtension(thumbName);
             ExtName = Path.GetExtension(fileName);
 
+            OnPropertyChanged("OriginalName");
+            OnPropertyChanged("OriginalPath");
+            OnPropertyChanged("OriginalFullPath");
+            OnPropertyChanged("ThumbnailName");
+            OnPropertyChanged("ThumbnailPath");
+            OnPropertyChanged("ThumbnailFullPath");
+            OnPropertyChanged("ExtName");
+            OnPropertyChanged("FileName");
+
             ReadExif();
 
             Recital = "";
@@ -36,7 +44,6 @@ namespace Densha
         }
 
         private Project _project = null;
-        [XmlIgnore()]
         public Project Project
         {
             get { return _project; }
@@ -57,10 +64,9 @@ namespace Densha
         public string Id
         {
             get { return _id; }
-            set { _id = value; }
         }
 
-        #region ファイルパス
+        #region 固定プロパティ
         /// <summary>
         /// 拡張子
         /// </summary>
@@ -121,24 +127,49 @@ namespace Densha
                     ThumbnailName + ExtName;
             }
         }
-        #endregion ファイルパス
+        #endregion
 
         #region 付加した情報
 
+        private bool _isUsed = true;
         /// <summary>
         /// 使うかどうか
         /// </summary>
-        public bool IsUsed { get; set; }
+        public bool IsUsed
+        {
+            get { return _isUsed; }
+            set
+            {
+                if (_isUsed != value)
+                {
+                    _isUsed = value;
+                    OnPropertyChanged("IsUsed");
+                }
+            }
+        }
 
         /// <summary>
         /// 付加されたタグ
         /// </summary>
-        public List<Tag> Tags { get; set; }
+        public List<Tag> Tags { get; private set; }
 
+        private string _recital = "";
         /// <summary>
         /// ファイル名に付け足す文字列
         /// </summary>
-        public string Recital { get; set; }
+        public string Recital
+        {
+            get { return _recital; }
+            set
+            {
+                if (_recital != value)
+                {
+                    _recital = value;
+                    OnPropertyChanged("Recital");
+                    OnPropertyChanged("FileName");
+                }
+            }
+        }
 
         /// <summary>
         /// 生成されるファイル名(拡張子は除く)
@@ -208,6 +239,8 @@ namespace Densha
             }
             if (idx < 0) Tags.Add(tag);
             else Tags.Insert(idx, tag);
+
+            OnPropertyChanged("Tags");
             return true;
         }
         public void SortTags()
@@ -218,6 +251,8 @@ namespace Densha
         {
             if (!Tags.Contains(tag)) return false;
             Tags.Remove(tag);
+
+            OnPropertyChanged("Tags");
             return true;
         }
 
@@ -243,11 +278,12 @@ namespace Densha
             {
 #warning TODO error
             }
+            OnPropertyChanged("ShootingTime");
         }
 
         #endregion 画像情報取得メソッド
 
-
+        #region 保存・読み込み
         private const string SAVETIME_FORMAT = "yyyyMMdd-HHmmss";
         public void WriteXml(XmlWriter writer)
         {
@@ -324,7 +360,7 @@ namespace Densha
 
             extname = extname ?? ".jpg";
             DenshaImage img = new DenshaImage(project, origname + extname, thumbname + extname);
-            img.IsUsed = use;
+            img._isUsed = use;
             img.Recital = recital;
             img.ShootingTime = time;
             foreach (Tag tag in tags)
@@ -334,5 +370,6 @@ namespace Densha
 
             return img;
         }
+        #endregion
     }
 }
